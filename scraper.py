@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -18,16 +19,26 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    return list()
+
+    # resource: https://www.geeksforgeeks.org/python/beautifulsoup-scraping-link-from-html/
+    found_urls = []
+
+    content = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    for link in content.find_all('a', attrs={'href': re.compile("^https://")}):
+    # display the actual urls
+        print(link.get('href'))
+        found_urls.append(link.get('href'))
+
+
+    return found_urls
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
 
-    # REASONS NOT TO CRAWL:
+    # REASONS URL IS INVALID:
         # invalid extensions- not pointing to a webpage
-        # already crawled
         # potential trap - example: ics calendar which will be infinite
         # webpage is NOT a subdomain of *.ics.uci.edu/*, *.cs.uci.edu/*, *.informatics.uci.edu/*, or *.stat.uci.edu/*
         # scheme is not http or https
@@ -37,6 +48,7 @@ def is_valid(url):
         print(parsed)
         if parsed.scheme not in set(["http", "https"]):
             return False
+        # make sure domain is valid
         valid_domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
         if not any(parsed.netloc == domain or parsed.netloc.endswith("." + domain) for domain in valid_domains):
             return False
@@ -71,6 +83,8 @@ def main():
                 "https://ics.uci.edu/events/list/?tribe-bar-date=2026-05-16"] # date trap
     for url in testurls:
         print(is_valid(url))
+
+    test_content = "<p>You can find the landing pages for the Engineering and Merage teaching plans at the following links: <ul><li><a href='https://merage.uci.edu/programs/undergraduate/enrollment.html' target='blank'>Merage Academic Year Teaching Plan</a></li><li><a href='https://undergraduate.eng.uci.edu/teaching-plan/'  target='blank'>Engineering Academic Year Teaching Plan</a></li></ul><p />"
 
 
 if __name__ == "__main__":
