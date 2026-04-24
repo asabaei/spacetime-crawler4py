@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 
 def scraper(url, resp):
@@ -23,11 +23,29 @@ def extract_next_links(url, resp):
     # resource: https://www.geeksforgeeks.org/python/beautifulsoup-scraping-link-from-html/
     found_urls = []
 
-    content = BeautifulSoup(resp.raw_response.content, 'html.parser')
-    for link in content.find_all('a', attrs={'href': re.compile("^https://")}):
-    # display the actual urls
-        print(link.get('href'))
-        found_urls.append(link.get('href'))
+    # checking to make sure there was no error
+    if resp.status != 200:
+        print(resp.error)
+        return found_urls
+    
+    # checking to make sure there is a page and content
+    if not resp.raw_response:
+        return found_urls
+    if not resp.raw_response.content:
+        return found_urls
+    
+    # checking to make sure the content is text/html
+    content_type = resp.raw_response.headers.get("content-type", "")
+    if "text/html" not in content_type:
+        return found_urls
+
+    content = BeautifulSoup(resp.raw_response.content, 'lxml')
+    for tag in content.find_all("a", href=True):
+        new_url = tag["href"]
+        new_url = urljoin(url, new_url)
+        new_url = new_url.split("#")[0]
+        if new_url:
+            found_urls.append(new_url)
 
 
     return found_urls
@@ -45,7 +63,7 @@ def is_valid(url):
 
     try:
         parsed = urlparse(url)
-        print(parsed)
+
         if parsed.scheme not in set(["http", "https"]):
             return False
         # make sure domain is valid
@@ -57,7 +75,7 @@ def is_valid(url):
             re.search(r"(month|year|day)=\d+", parsed.query.lower()):
             return False
         return not re.match(
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
+            r".*\.(css|js|bmp|gif|jpe?g|ico|ics"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
@@ -87,5 +105,5 @@ def main():
     test_content = "<p>You can find the landing pages for the Engineering and Merage teaching plans at the following links: <ul><li><a href='https://merage.uci.edu/programs/undergraduate/enrollment.html' target='blank'>Merage Academic Year Teaching Plan</a></li><li><a href='https://undergraduate.eng.uci.edu/teaching-plan/'  target='blank'>Engineering Academic Year Teaching Plan</a></li></ul><p />"
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
