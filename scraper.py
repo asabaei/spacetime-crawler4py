@@ -42,7 +42,10 @@ def extract_next_links(url, resp):
     content = BeautifulSoup(resp.raw_response.content, 'lxml')
     for tag in content.find_all("a", href=True):
         new_url = tag["href"]
-        new_url = urljoin(url, new_url)
+        try:
+            new_url = urljoin(url, new_url)
+        except ValueError:
+            continue
         new_url = new_url.split("#")[0]
         if new_url:
             found_urls.append(new_url)
