@@ -39,6 +39,11 @@ def extract_next_links(url, resp):
     if "text/html" not in content_type:
         return found_urls
     
+    # Check the HTTP response header to ensure the dataset is not too large
+    content_length = resp.raw_response.headers.get("content-length", "")
+    if content_length > 1000000:    # We can change this threshold as seen fit (it is currently 1 million)
+        return found_urls
+    
     content = BeautifulSoup(resp.raw_response.content, 'lxml')
     for tag in content.find_all("a", href=True):
         new_url = tag["href"]
