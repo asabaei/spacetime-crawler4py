@@ -23,7 +23,7 @@ def extract_next_links(url, resp):
 
     # resource: https://www.geeksforgeeks.org/python/beautifulsoup-scraping-link-from-html/
     found_urls = []
-    stop_words = stop_words = {
+    stop_words = {
         "a", "about", "above", "after", "again", "against", "all", "am", "an",
         "and", "any", "are", "aren't", "as", "at", "be", "because", "been",
         "before", "being", "below", "between", "both", "but", "by", "can't",
@@ -60,23 +60,40 @@ def extract_next_links(url, resp):
     
     # checking to make sure the content is text/html
     content_type = resp.raw_response.headers.get("content-type", "")
-    if "text/html" not in content_type:
+    if "text/html" not in content_type.lower():
         return found_urls
     
     # Check the HTTP response header to ensure the dataset is not too large
     content_length = resp.raw_response.headers.get("content-length", "")
-    if content_length > 1000000:    # We can change this threshold as seen fit (it is currently 1 million)
-        return found_urls
+    if content_length:
+        try:
+            if int(content_length) > 1000000:    # We can change this threshold as seen fit (it is currently 1 million)
+                return found_urls
+        except ValueError:
+            pass
     
     # get next URLs
     content = BeautifulSoup(resp.raw_response.content, 'lxml')
     for tag in content.find_all("a", href=True):
-        new_url = tag["href"]
+        href = tag["href"].strip()
+ 
+        # skip non-page links
+        if href == "" or href.startswith("#"):
+            continue
+        if href.lower().startswith("javascript:"):
+            continue
+        if href.lower().startswith("mailto:"):
+            continue
+        if href.lower().startswith("tel:"):
+            continue
+ 
         try:
-            new_url = urljoin(url, new_url)
+            new_url = urljoin(url, href)
         except ValueError:
             continue
-        new_url = new_url.split("#")[0]
+            
+        new_url = urldefrag(new_url).url
+ 
         if new_url:
             found_urls.append(new_url)
 
@@ -84,16 +101,10 @@ def extract_next_links(url, resp):
     text = content.get_text()
     words = re.split(r'\W+', text.lower())
     words = [w for w in words if w and w not in stop_words]
-    
-    # update count dictionary to find most common words
-    analytics.word_counter.update(words)
 
-    # if this content is longer than previous, update it as longest
-    if words.length() > analytics.longest_page[1]:
-        analytics.longest_page = (resp.url, words.length())
 
-    # add the url minus fragment to unique pages set
-    analytics.unique_pages.add(urldefrag(resp.url).url)
+    #update all analytics including subdomain count
+    analytics.add_page(urldefrag(resp.url).url, words)
 
     return found_urls
 
@@ -141,7 +152,7 @@ def is_valid(url):
             return False
         if "~hziv/ooad/classes/sld" in parsed.path:
             return False
-        if "~wscacchi/Presentations/" in parsed.path:
+        if "~wscacchi/presentations/" in parsed.path.lower():
             return False
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico|ics"
@@ -151,7 +162,7 @@ def is_valid(url):
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$|can", parsed.path.lower())
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz|can)$", parsed.path.lower())
 
     except TypeError:
         print ("TypeError for ", parsed)
