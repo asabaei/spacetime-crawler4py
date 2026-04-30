@@ -134,36 +134,50 @@ def is_valid(url):
         # Avoiding doku.php (which seemed to be a crawler trap)
         if "doku.php" in parsed.path:
             return False
+        # avoiding some unneccessary sites it spent a lot of time on
+        if ("~dechter/softwares/" in parsed.path) or ("~dechter/courses/" in parsed.path):
+            return False
+        if "~baldig/learning/" in parsed.path:
+            return False
+        if "~hziv/ooad/classes/sld" in parsed.path:
+            return False
+        if "~wscacchi/Presentations/" in parsed.path:
+            return False
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico|ics"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|ppsx"
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$|can", parsed.path.lower())
 
     except TypeError:
         print ("TypeError for ", parsed)
         raise
 
 def main():
-    testurls = ["https://courselisting.ics.uci.edu/ugrad_courses/",
-               "https://www.ics.uci.edu/",
+    testurls = ["https://ics.uci.edu/~dechter/softwares/", # False
+                "https://ics.uci.edu/~dechter/courses/", # False
+                "https://ics.uci.edu/~baldig/learning/", # False
+                "https://ics.uci.edu/~hziv/ooad/classes/sld001.htm", # False
+                "https://ics.uci.edu/~wscacchi/Presentations/GameLab/", #False
+                "https://courselisting.ics.uci.edu/ugrad_courses/",
+                "https://www.ics.uci.edu/",
                 "https://www.cs.uci.edu/grad/",
                 "https://www.informatics.uci.edu/about/",
                 "https://www.stat.uci.edu/seminars/",
                 "https://www.ics.uci.edu/page#section",
-                "https://www.ics.uci.edu/image.png", # bad extension
-                "https://google.com/", # wrong domain
-                "ftp://www.ics.uci.edu/", # bad schema
-                "https://ics.uci.edu/events/list/?tribe-bar-date=2026-05-16"] # date trap
+                "https://www.ics.uci.edu/image.png", # False, bad extension
+                "https://google.com/", # False, wrong domain
+                "ftp://www.ics.uci.edu/", # False, bad schema
+                "https://ics.uci.edu/events/list/?tribe-bar-date=2026-05-16",] # False, date trap
     for url in testurls:
         print(is_valid(url))
 
     test_content = "<p>You can find the landing pages for the Engineering and Merage teaching plans at the following links: <ul><li><a href='https://merage.uci.edu/programs/undergraduate/enrollment.html' target='blank'>Merage Academic Year Teaching Plan</a></li><li><a href='https://undergraduate.eng.uci.edu/teaching-plan/'  target='blank'>Engineering Academic Year Teaching Plan</a></li></ul><p />"
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
